@@ -38,8 +38,8 @@ const en: Dict = {
   selectVillage: "Select a village",
   searchVillage: "Type to search your village",
   noVillage: "No matching village",
-  voiceInput: "Speak instead of typing",
   listening: "Listening...",
+  voiceInput: "Speak instead of typing",
   voiceNotSupported: "Voice input is not supported on this device/browser.",
   voiceNoMatch: "Could not match what you said. Please try again or select manually.",
   submit: "Get My Report",
@@ -142,8 +142,8 @@ const hi: Dict = {
   selectVillage: "गाँव चुनें",
   searchVillage: "गाँव खोजने के लिए टाइप करें",
   noVillage: "कोई मेल खाता गाँव नहीं",
-  voiceInput: "टाइप करने के बजाय बोलें",
   listening: "सुन रहा है...",
+  voiceInput: "टाइप करने के बजाय बोलें",
   voiceNotSupported: "इस डिवाइस/ब्राउज़र पर वॉइस इनपुट समर्थित नहीं है।",
   voiceNoMatch: "आपने जो कहा उससे मेल नहीं खाया। कृपया पुनः प्रयास करें या मैन्युअल रूप से चुनें।",
   submit: "मेरी रिपोर्ट प्राप्त करें",
@@ -246,8 +246,8 @@ const as: Dict = {
   selectVillage: "গাঁও বাছনি কৰক",
   searchVillage: "গাঁও বিচাৰিবলৈ টাইপ কৰক",
   noVillage: "মিল থকা গাঁও নাই",
-  voiceInput: "টাইপ কৰাৰ পৰিৱৰ্তে কওক",
   listening: "শুনি আছে...",
+  voiceInput: "টাইপ কৰাৰ পৰিৱৰ্তে কওক",
   voiceNotSupported: "এই ডিভাইচ/ব্ৰাউজাৰত ভইচ ইনপুট সমৰ্থিত নহয়।",
   voiceNoMatch: "আপুনি কোৱাটোৰ সৈতে মিল নাখালে। অনুগ্ৰহ কৰি পুনৰ চেষ্টা কৰক বা হাতেৰে বাছনি কৰক।",
   submit: "মোৰ প্ৰতিবেদন লওক",
@@ -346,4 +346,23 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
 export function useI18n() {
   return useContext(LangContext);
+}
+
+// The states dataset only ever contains a fixed, known set of state names,
+// so these can be safely translated for display. District/block/village
+// names are local place names and are intentionally left untranslated.
+const STATE_NAME_TRANSLATIONS: Record<Lang, Record<string, string>> = {
+  English: {},
+  Hindi: {
+    Assam: "असम",
+    Meghalaya: "मेघालय",
+  },
+  Assamese: {
+    Assam: "অসম",
+    Meghalaya: "মেঘালয়",
+  },
+};
+
+export function translateStateName(stateName: string, lang: Lang): string {
+  return STATE_NAME_TRANSLATIONS[lang]?.[stateName] ?? stateName;
 }

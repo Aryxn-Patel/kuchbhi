@@ -63,13 +63,12 @@
 
 :root {
   --radius: 0.1875rem;
-  /* Udyam Disha institutional palette */
-  /* Udyam Disha institutional palette (client-supplied swatch) */
-  --ud-navy: oklch(0.24 0.035 249); /* #122130 - headers, primary text, active states */
-  --ud-govtblue: oklch(0.6 0.087 208); /* #349D9C - "Accent Teal", borders + primary CTA */
-  --ud-tan: oklch(0.75 0.07 60); /* #C79E75 - "Primary Warm Beige", surface base */
-  --ud-green: oklch(0.86 0.16 128); /* #AEE378 - "Fresh Agri Green", success/selected states */
-  --ud-bg: oklch(0.96 0.015 240); /* #E5EDF5 - "Light Off-White", page bg + card bg */
+  /* Udyam Disha institutional palette (dark shell theme, client-supplied swatch) */
+  --ud-navy: oklch(0.24 0.035 249); /* #122130 - headers, primary text on white cards */
+  --ud-govtblue: oklch(0.501 0.058 197); /* #376E6F - "Accent Teal", borders + primary CTA */
+  --ud-tan: oklch(0.75 0.07 60); /* #C79E75 - light beige accent, footer text, subtle tints */
+  --ud-green: oklch(0.693 0.12 4.5); /* #DA7B93 - "Accent Pink", success/selected states */
+  --ud-bg: oklch(0.376 0.038 241.8); /* #2F4454 - page shell background */
 
   /* Back-compat aliases so existing ud-* utility classes keep working */
   --ud-brown: var(--ud-navy);
@@ -78,8 +77,11 @@
   --ud-sand: var(--ud-tan);
   --ud-cream: var(--ud-bg);
 
+  --ud-maroon: oklch(0.234 0.041 5.4); /* #2E151B - deep accent, sparing use */
+  --ud-deepteal: oklch(0.303 0.029 199.3); /* #1C3334 - darkest surface, footer */
+
   --background: var(--ud-bg);
-  --foreground: var(--ud-navy);
+  --foreground: oklch(0.96 0.008 240); /* light text for the dark page shell */
   --card: oklch(1 0 0);
   --card-foreground: var(--ud-navy);
   --popover: oklch(1 0 0);
@@ -162,6 +164,8 @@
   --color-ud-gold: var(--ud-gold);
   --color-ud-sand: var(--ud-sand);
   --color-ud-cream: var(--ud-cream);
+  --color-ud-maroon: var(--ud-maroon);
+  --color-ud-deepteal: var(--ud-deepteal);
 }
 
 @layer base {
@@ -200,4 +204,3 @@
     page-break-inside: avoid;
   }
 }
-

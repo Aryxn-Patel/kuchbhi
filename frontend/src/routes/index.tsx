@@ -6,7 +6,7 @@ import { SiteLayout } from "@/components/SiteLayout";
 import { MicButton } from "@/components/MicButton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, translateStateName } from "@/lib/i18n";
 import { findBestMatch } from "@/lib/fuzzy-match";
 import { saveReport } from "@/lib/report-store";
 import {
@@ -256,7 +256,7 @@ function IndexPage() {
                 <option value="">{t("selectState")}</option>
                 {states.map((s) => (
                   <option key={s} value={s}>
-                    {s}
+                    {translateStateName(s, lang)}
                   </option>
                 ))}
               </select>

@@ -1,0 +1,182 @@
+[1mdiff --git a/llm_report_generator.py b/llm_report_generator.py[m
+[1mindex 9fe4400..ca6b3eb 100644[m
+[1m--- a/llm_report_generator.py[m
+[1m+++ b/llm_report_generator.py[m
+[36m@@ -37,6 +37,39 @@[m [mclass LLMReportError(Exception):[m
+     pass[m
+ [m
+ [m
+[32m+[m[32m# ---------------------------------------------------------------------------[m
+[32m+[m[32m# Language normalization.[m
+[32m+[m[32m#[m
+[32m+[m[32m# Frontends often send inconsistent values ("hi", "hindi", "Hindi", "HINDI",[m
+[32m+[m[32m# "हिंदी") for the same language. If the raw value doesn't match what the[m
+[32m+[m[32m# LLM expects, the prompt silently falls back to whatever string was passed,[m
+[32m+[m[32m# and a typo/mismatch can make the model default to English without any[m
+[32m+[m[32m# error being raised. This normalizes common variants to a clean display[m
+[32m+[m[32m# name and logs the raw incoming value so mismatches are visible.[m
+[32m+[m[32m# ---------------------------------------------------------------------------[m
+[32m+[m[32mLANGUAGE_ALIASES = {[m
+[32m+[m[32m    "hindi": "Hindi", "hi": "Hindi", "हिंदी": "Hindi", "हिन्दी": "Hindi",[m
+[32m+[m[32m    "english": "English", "en": "English",[m
+[32m+[m[32m    "assamese": "Assamese", "as": "Assamese", "অসমীয়া": "Assamese",[m
+[32m+[m[32m    "bengali": "Bengali", "bn": "Bengali",[m
+[32m+[m[32m    "marathi": "Marathi", "mr": "Marathi",[m
+[32m+[m[32m    "tamil": "Tamil", "ta": "Tamil",[m
+[32m+[m[32m    "telugu": "Telugu", "te": "Telugu",[m
+[32m+[m[32m    "gujarati": "Gujarati", "gu": "Gujarati",[m
+[32m+[m[32m    "kannada": "Kannada", "kn": "Kannada",[m
+[32m+[m[32m    "malayalam": "Malayalam", "ml": "Malayalam",[m
+[32m+[m[32m    "punjabi": "Punjabi", "pa": "Punjabi",[m
+[32m+[m[32m    "odia": "Odia", "or": "Odia",[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m
+[32m+[m[32mdef normalize_language(raw_language: str) -> str:[m
+[32m+[m[32m    key = (raw_language or "").strip().lower()[m
+[32m+[m[32m    normalized = LANGUAGE_ALIASES.get(key, raw_language.strip() if raw_language else "English")[m
+[32m+[m[32m    print(f"[llm_report_generator] language requested='{raw_language}' -> normalized='{normalized}'")[m
+[32m+[m[32m    return normalized[m
+[32m+[m
+[32m+[m
+ # ---------------------------------------------------------------------------[m
+ # Fallback scheme-name translations.[m
+ #[m
+[36m@@ -159,9 +192,28 @@[m [mReturn ONLY valid JSON, no markdown formatting, no code fences, in exactly this[m
+ [m
+ Each list should have 2-3 short items, each under 15 words.[m
+ "recommended_schemes" must contain 2-3 entries.[m
+[32m+[m
+[32m+[m[32mFINAL REMINDER (most important): Every single string value in your JSON output — every[m
+[32m+[m[32mSWOT point, every summary, every scheme field — must be written in {language}. If[m
+[32m+[m[32m{language} is Hindi, use Devanagari script throughout, not English and not Romanized[m
+[32m+[m[32mHindi. Do not slip into English anywhere in the response, even for scheme acronyms[m
+[32m+[m[32m(spell out the meaning in {language}, short-code in brackets is fine). Check your own[m
+[32m+[m[32moutput before finalizing: if any field is in English while {language} is not English,[m
+[32m+[m[32mrewrite it.[m
+ """[m
+ [m
+ [m
+[32m+[m[32mdef build_system_message(language: str) -> str:[m
+[32m+[m[32m    return ([m
+[32m+[m[32m        f"You are a multilingual business-advisory assistant. You must respond ONLY in "[m
+[32m+[m[32m        f"{language}, in native script (e.g. Devanagari for Hindi, Assamese script for "[m
+[32m+[m[32m        f"Assamese) — never in English, never transliterated/Romanized, regardless of what "[m
+[32m+[m[32m        f"language the input data or instructions are written in. This applies to every "[m
+[32m+[m[32m        f"field in your JSON output, including proper nouns and scheme names. Violating "[m
+[32m+[m[32m        f"this is a critical failure."[m
+[32m+[m[32m    )[m
+[32m+[m
+[32m+[m
+ def parse_llm_response(raw_text: str) -> dict:[m
+     cleaned = raw_text.strip()[m
+     if cleaned.startswith("```"):[m
+[36m@@ -176,6 +228,37 @@[m [mdef parse_llm_response(raw_text: str) -> dict:[m
+         raise LLMReportError(f"Failed to parse LLM output as JSON: {e}\nRaw output: {raw_text}")[m
+ [m
+ [m
+[32m+[m[32m# Unicode block ranges used to sanity-check that the model actually wrote in[m
+[32m+[m[32m# the requested script, instead of trusting it blindly.[m
+[32m+[m[32mNATIVE_SCRIPT_RANGES = {[m
+[32m+[m[32m    "hindi": (0x0900, 0x097F),      # Devanagari[m
+[32m+[m[32m    "assamese": (0x0980, 0x09FF),   # Bengali-Assamese[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m
+[32m+[m[32mdef response_matches_language(data: dict, language: str) -> bool:[m
+[32m+[m[32m    lang_key = language.strip().lower()[m
+[32m+[m[32m    script_range = NATIVE_SCRIPT_RANGES.get(lang_key)[m
+[32m+[m[32m    if not script_range:[m
+[32m+[m[32m        return True  # nothing to check for English / unlisted languages[m
+[32m+[m
+[32m+[m[32m    sample_parts = [][m
+[32m+[m[32m    sample_parts.extend(data.get("strengths", []))[m
+[32m+[m[32m    sample_parts.extend(data.get("weaknesses", []))[m
+[32m+[m[32m    sample_parts.append(data.get("threats_summary", ""))[m
+[32m+[m[32m    sample_text = " ".join(sample_parts)[m
+[32m+[m
+[32m+[m[32m    if not sample_text.strip():[m
+[32m+[m[32m        return True  # nothing to judge, don't block on it[m
+[32m+[m
+[32m+[m[32m    low, high = script_range[m
+[32m+[m[32m    native_chars = sum(1 for ch in sample_text if low <= ord(ch) <= high)[m
+[32m+[m[32m    letter_chars = sum(1 for ch in sample_text if ch.isalpha())[m
+[32m+[m[32m    if letter_chars == 0:[m
+[32m+[m[32m        return True[m
+[32m+[m[32m    return (native_chars / letter_chars) > 0.3  # at least ~30% native-script letters[m
+[32m+[m
+[32m+[m
+ def generate_business_report(location: str, business_category: str, available_capital: float,[m
+                               market_density: float, business_saturation_index: float,[m
+                               true_disposable_wealth: float, infrastructure_readiness_score: float,[m
+[36m@@ -185,6 +268,8 @@[m [mdef generate_business_report(location: str, business_category: str, available_ca[m
+     if not GROQ_API_KEY:[m
+         raise LLMReportError("GROQ_API_KEY environment variable is not set.")[m
+ [m
+[32m+[m[32m    language = normalize_language(language)[m
+[32m+[m
+     prompt = build_prompt([m
+         location=location, business_category=business_category, available_capital=available_capital,[m
+         market_density=market_density, business_saturation_index=business_saturation_index,[m
+[36m@@ -194,15 +279,38 @@[m [mdef generate_business_report(location: str, business_category: str, available_ca[m
+     )[m
+ [m
+     client = Groq(api_key=GROQ_API_KEY)[m
+[31m-    try:[m
+[31m-        response = client.chat.completions.create([m
+[31m-            messages=[{"role": "user", "content": prompt}],[m
+[31m-            model=MODEL_NAME,[m
+[31m-        )[m
+[31m-    except Exception as e:[m
+[31m-        raise LLMReportError(f"Groq API call failed: {e}")[m
+ [m
+[31m-    data = parse_llm_response(response.choices[0].message.content)[m
+[32m+[m[32m    def call_groq(extra_nudge: str = "") -> dict:[m
+[32m+[m[32m        system_content = build_system_message(language)[m
+[32m+[m[32m        user_content = prompt + extra_nudge[m
+[32m+[m[32m        try:[m
+[32m+[m[32m            resp = client.chat.completions.create([m
+[32m+[m[32m                messages=[[m
+[32m+[m[32m                    {"role": "system", "content": system_content},[m
+[32m+[m[32m                    {"role": "user", "content": user_content},[m
+[32m+[m[32m                ],[m
+[32m+[m[32m                model=MODEL_NAME,[m
+[32m+[m[32m                temperature=0,[m
+[32m+[m[32m            )[m
+[32m+[m[32m        except Exception as e:[m
+[32m+[m[32m            raise LLMReportError(f"Groq API call failed: {e}")[m
+[32m+[m[32m        return parse_llm_response(resp.choices[0].message.content)[m
+[32m+[m
+[32m+[m[32m    data = call_groq()[m
+[32m+[m
+[32m+[m[32m    if not response_matches_language(data, language):[m
+[32m+[m[32m        print(f"[llm_report_generator] response failed language check for '{language}', retrying with stronger nudge")[m
+[32m+[m[32m        retry_nudge = ([m
+[32m+[m[32m            f"\n\nYOUR PREVIOUS ATTEMPT WAS REJECTED because it was written in English "[m
+[32m+[m[32m            f"instead of {language}. This time, write EVERY field in {language} native "[m
+[32m+[m[32m            f"script. Do not use English at all."[m
+[32m+[m[32m        )[m
+[32m+[m[32m        retried_data = call_groq(retry_nudge)[m
+[32m+[m[32m        if response_matches_language(retried_data, language):[m
+[32m+[m[32m            data = retried_data[m
+[32m+[m[32m        else:[m
+[32m+[m[32m            print(f"[llm_report_generator] retry still failed language check for '{language}', using it anyway")[m
+[32m+[m[32m            data = retried_data[m
+ [m
+     swot = SWOT([m
+         strengths=data.get("strengths", []),[m
+[36m@@ -227,4 +335,11 @@[m [mdef generate_business_report(location: str, business_category: str, available_ca[m
+         pricing_value_estimate=data.get("pricing_value_estimate", ""),[m
+         recommended_schemes=recommended_schemes,[m
+         language=language,[m
+[31m-    )[m
+\ No newline at end of file[m
+[32m+[m[32m    )[m
+[32m+[m
+[32m+[m
+[32m+[m[32mif __name__ == "__main__":[m
+[32m+[m[32m    # Quick manual test: python llm_report_generator.py[m
+[32m+[m[32m    # Confirms normalize_language() handles common variants correctly.[m
+[32m+[m[32m    for test_value in ["Hindi", "hindi", "hi", "HINDI", "", None, "English"]:[m
+[32m+[m[32m        print(test_value, "->", normalize_language(test_value))[m
+\ No newline at end of file[m

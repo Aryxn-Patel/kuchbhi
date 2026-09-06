@@ -159,7 +159,7 @@ function ReportPage() {
           {metrics.live_competitor_count !== null && metrics.live_competitor_count !== undefined && (
             <Stat
               label={t("competitorDensity")}
-              value={`${metrics.live_competitor_count} nearby`}
+              value={`${metrics.live_competitor_count >= 20 ? "20+" : metrics.live_competitor_count} nearby`}
               subtext={metrics.competitor_breakdown}
             />
           )}

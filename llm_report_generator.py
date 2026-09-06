@@ -38,6 +38,39 @@ class LLMReportError(Exception):
 
 
 # ---------------------------------------------------------------------------
+# Language normalization.
+#
+# Frontends often send inconsistent values ("hi", "hindi", "Hindi", "HINDI",
+# "हिंदी") for the same language. If the raw value doesn't match what the
+# LLM expects, the prompt silently falls back to whatever string was passed,
+# and a typo/mismatch can make the model default to English without any
+# error being raised. This normalizes common variants to a clean display
+# name and logs the raw incoming value so mismatches are visible.
+# ---------------------------------------------------------------------------
+LANGUAGE_ALIASES = {
+    "hindi": "Hindi", "hi": "Hindi", "हिंदी": "Hindi", "हिन्दी": "Hindi",
+    "english": "English", "en": "English",
+    "assamese": "Assamese", "as": "Assamese", "অসমীয়া": "Assamese",
+    "bengali": "Bengali", "bn": "Bengali",
+    "marathi": "Marathi", "mr": "Marathi",
+    "tamil": "Tamil", "ta": "Tamil",
+    "telugu": "Telugu", "te": "Telugu",
+    "gujarati": "Gujarati", "gu": "Gujarati",
+    "kannada": "Kannada", "kn": "Kannada",
+    "malayalam": "Malayalam", "ml": "Malayalam",
+    "punjabi": "Punjabi", "pa": "Punjabi",
+    "odia": "Odia", "or": "Odia",
+}
+
+
+def normalize_language(raw_language: str) -> str:
+    key = (raw_language or "").strip().lower()
+    normalized = LANGUAGE_ALIASES.get(key, raw_language.strip() if raw_language else "English")
+    print(f"[llm_report_generator] language requested='{raw_language}' -> normalized='{normalized}'")
+    return normalized
+
+
+# ---------------------------------------------------------------------------
 # Fallback scheme-name translations.
 #
 # LLMs are inconsistent about translating official government scheme names —
@@ -159,7 +192,26 @@ Return ONLY valid JSON, no markdown formatting, no code fences, in exactly this 
 
 Each list should have 2-3 short items, each under 15 words.
 "recommended_schemes" must contain 2-3 entries.
+
+FINAL REMINDER (most important): Every single string value in your JSON output — every
+SWOT point, every summary, every scheme field — must be written in {language}. If
+{language} is Hindi, use Devanagari script throughout, not English and not Romanized
+Hindi. Do not slip into English anywhere in the response, even for scheme acronyms
+(spell out the meaning in {language}, short-code in brackets is fine). Check your own
+output before finalizing: if any field is in English while {language} is not English,
+rewrite it.
 """
+
+
+def build_system_message(language: str) -> str:
+    return (
+        f"You are a multilingual business-advisory assistant. You must respond ONLY in "
+        f"{language}, in native script (e.g. Devanagari for Hindi, Assamese script for "
+        f"Assamese) — never in English, never transliterated/Romanized, regardless of what "
+        f"language the input data or instructions are written in. This applies to every "
+        f"field in your JSON output, including proper nouns and scheme names. Violating "
+        f"this is a critical failure."
+    )
 
 
 def parse_llm_response(raw_text: str) -> dict:
@@ -176,6 +228,37 @@ def parse_llm_response(raw_text: str) -> dict:
         raise LLMReportError(f"Failed to parse LLM output as JSON: {e}\nRaw output: {raw_text}")
 
 
+# Unicode block ranges used to sanity-check that the model actually wrote in
+# the requested script, instead of trusting it blindly.
+NATIVE_SCRIPT_RANGES = {
+    "hindi": (0x0900, 0x097F),      # Devanagari
+    "assamese": (0x0980, 0x09FF),   # Bengali-Assamese
+}
+
+
+def response_matches_language(data: dict, language: str) -> bool:
+    lang_key = language.strip().lower()
+    script_range = NATIVE_SCRIPT_RANGES.get(lang_key)
+    if not script_range:
+        return True  # nothing to check for English / unlisted languages
+
+    sample_parts = []
+    sample_parts.extend(data.get("strengths", []))
+    sample_parts.extend(data.get("weaknesses", []))
+    sample_parts.append(data.get("threats_summary", ""))
+    sample_text = " ".join(sample_parts)
+
+    if not sample_text.strip():
+        return True  # nothing to judge, don't block on it
+
+    low, high = script_range
+    native_chars = sum(1 for ch in sample_text if low <= ord(ch) <= high)
+    letter_chars = sum(1 for ch in sample_text if ch.isalpha())
+    if letter_chars == 0:
+        return True
+    return (native_chars / letter_chars) > 0.3  # at least ~30% native-script letters
+
+
 def generate_business_report(location: str, business_category: str, available_capital: float,
                               market_density: float, business_saturation_index: float,
                               true_disposable_wealth: float, infrastructure_readiness_score: float,
@@ -184,6 +267,8 @@ def generate_business_report(location: str, business_category: str, available_ca
 
     if not GROQ_API_KEY:
         raise LLMReportError("GROQ_API_KEY environment variable is not set.")
+
+    language = normalize_language(language)
 
     prompt = build_prompt(
         location=location, business_category=business_category, available_capital=available_capital,
@@ -194,15 +279,38 @@ def generate_business_report(location: str, business_category: str, available_ca
     )
 
     client = Groq(api_key=GROQ_API_KEY)
-    try:
-        response = client.chat.completions.create(
-            messages=[{"role": "user", "content": prompt}],
-            model=MODEL_NAME,
-        )
-    except Exception as e:
-        raise LLMReportError(f"Groq API call failed: {e}")
 
-    data = parse_llm_response(response.choices[0].message.content)
+    def call_groq(extra_nudge: str = "") -> dict:
+        system_content = build_system_message(language)
+        user_content = prompt + extra_nudge
+        try:
+            resp = client.chat.completions.create(
+                messages=[
+                    {"role": "system", "content": system_content},
+                    {"role": "user", "content": user_content},
+                ],
+                model=MODEL_NAME,
+                temperature=0,
+            )
+        except Exception as e:
+            raise LLMReportError(f"Groq API call failed: {e}")
+        return parse_llm_response(resp.choices[0].message.content)
+
+    data = call_groq()
+
+    if not response_matches_language(data, language):
+        print(f"[llm_report_generator] response failed language check for '{language}', retrying with stronger nudge")
+        retry_nudge = (
+            f"\n\nYOUR PREVIOUS ATTEMPT WAS REJECTED because it was written in English "
+            f"instead of {language}. This time, write EVERY field in {language} native "
+            f"script. Do not use English at all."
+        )
+        retried_data = call_groq(retry_nudge)
+        if response_matches_language(retried_data, language):
+            data = retried_data
+        else:
+            print(f"[llm_report_generator] retry still failed language check for '{language}', using it anyway")
+            data = retried_data
 
     swot = SWOT(
         strengths=data.get("strengths", []),
@@ -228,3 +336,10 @@ def generate_business_report(location: str, business_category: str, available_ca
         recommended_schemes=recommended_schemes,
         language=language,
     )
+
+
+if __name__ == "__main__":
+    # Quick manual test: python llm_report_generator.py
+    # Confirms normalize_language() handles common variants correctly.
+    for test_value in ["Hindi", "hindi", "hi", "HINDI", "", None, "English"]:
+        print(test_value, "->", normalize_language(test_value))

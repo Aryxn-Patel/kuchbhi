@@ -89,17 +89,18 @@ export interface SWOT {
   threats: string[];
 }
 
+export interface GovernmentScheme {
+  scheme_name: string;
+  subsidy_benefit: string;
+  eligibility_fit: string;
+}
+
 export interface BusinessReport {
   swot: SWOT;
   threats_summary: string;
   pricing_suggestion: string;
   pricing_value_estimate: string;
-}
-
-export interface GovernmentScheme {
-  id: string;
-  name: string;
-  description: string;
+  recommended_schemes: GovernmentScheme[];
 }
 
 export interface GenerateReportResponse {
@@ -111,7 +112,6 @@ export interface GenerateReportResponse {
   financial_plan: FinancialPlan;
   business_report: BusinessReport | null;
   business_report_error: string | null;
-  applicable_schemes: GovernmentScheme[];
 }
 
 export interface GenerateReportRequest {

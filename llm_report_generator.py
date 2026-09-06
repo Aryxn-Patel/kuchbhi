@@ -15,11 +15,18 @@ class SWOT:
     threats: List[str]
 
 @dataclass
+class GovernmentScheme:
+    scheme_name: str
+    subsidy_benefit: str
+    eligibility_fit: str
+
+@dataclass
 class BusinessReport:
     swot: SWOT
     threats_summary: str
     pricing_suggestion: str
     pricing_value_estimate: str
+    recommended_schemes: List[GovernmentScheme]
     language: str
 
 class LLMReportError(Exception):
@@ -54,6 +61,15 @@ HOW TO INTERPRET EACH METRIC:
 4. Infrastructure Readiness Score: 4-5 means easy setup. 0-1 means real capital challenges (power/roads). Highlight low scores in Weaknesses/Threats.
 5. Economy Type Ratio: > 0.5 favors consumer/services. < 0.5 favors industrial/agri.
 
+GOVERNMENT SCHEME MATCHING:
+Using your knowledge of Indian central and state government policies, subsidies, and
+credit schemes (such as PMFME, PMEGP, MUDRA, Stand-Up India, National Livestock Mission,
+NABARD schemes, and relevant state-specific grants), recommend 2-3 schemes that are the
+best fit for this entrepreneur, based on their business type, location, and available
+capital. Only suggest schemes that are plausibly real and relevant — do not invent scheme
+names. Every field you write, including scheme names and benefits, must be natively
+written in {language}, not just transliterated.
+
 Return ONLY valid JSON, no markdown formatting, no code fences, in exactly this shape:
 {{
   "strengths": ["point 1", "point 2"],
@@ -62,9 +78,17 @@ Return ONLY valid JSON, no markdown formatting, no code fences, in exactly this 
   "threats": ["point 1", "point 2"],
   "threats_summary": "one short paragraph on the biggest local risk",
   "pricing_suggestion": "one short paragraph suggesting a pricing approach",
-  "pricing_value_estimate": "a specific suggested price range, e.g. Rs. 30-40 per unit"
+  "pricing_value_estimate": "a specific suggested price range, e.g. Rs. 30-40 per unit",
+  "recommended_schemes": [
+    {{
+      "scheme_name": "name of a relevant central or state government scheme",
+      "subsidy_benefit": "one short line on the subsidy/loan/credit benefit it offers",
+      "eligibility_fit": "one short line on why it fits this entrepreneur's business, location, and capital"
+    }}
+  ]
 }}
 Each list should have 2-3 short items, each under 15 words.
+"recommended_schemes" must contain 2-3 entries.
 """
 
 def parse_llm_response(raw_text: str) -> dict:
@@ -113,10 +137,20 @@ def generate_business_report(location: str, business_category: str, available_ca
         threats=data.get("threats", []),
     )
 
+    recommended_schemes = [
+        GovernmentScheme(
+            scheme_name=s.get("scheme_name", ""),
+            subsidy_benefit=s.get("subsidy_benefit", ""),
+            eligibility_fit=s.get("eligibility_fit", ""),
+        )
+        for s in data.get("recommended_schemes", [])
+    ]
+
     return BusinessReport(
         swot=swot,
         threats_summary=data.get("threats_summary", ""),
         pricing_suggestion=data.get("pricing_suggestion", ""),
         pricing_value_estimate=data.get("pricing_value_estimate", ""),
+        recommended_schemes=recommended_schemes,
         language=language,
     )

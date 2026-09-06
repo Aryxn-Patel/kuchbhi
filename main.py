@@ -16,7 +16,6 @@ from market_engine import (
     MarketMetrics,
 )
 from llm_report_generator import generate_business_report, LLMReportError
-from schemes import get_applicable_schemes
 
 app = FastAPI(title="SIH26091 Combined API", version="0.4.0")
 
@@ -89,17 +88,18 @@ class SWOTResponse(BaseModel):
     threats: List[str]
 
 
+class GovernmentSchemeResponse(BaseModel):
+    scheme_name: str
+    subsidy_benefit: str
+    eligibility_fit: str
+
+
 class BusinessReportResponse(BaseModel):
     swot: SWOTResponse
     threats_summary: str
     pricing_suggestion: str
     pricing_value_estimate: str
-
-
-class GovernmentSchemeResponse(BaseModel):
-    id: str
-    name: str
-    description: str
+    recommended_schemes: List[GovernmentSchemeResponse]
 
 
 class GenerateReportResponse(BaseModel):
@@ -111,7 +111,6 @@ class GenerateReportResponse(BaseModel):
     financial_plan: FinancialPlanResponse
     business_report: Optional[BusinessReportResponse]
     business_report_error: Optional[str]
-    applicable_schemes: List[GovernmentSchemeResponse]
 
 
 @app.get("/health")
@@ -227,14 +226,17 @@ def generate_report(request: GenerateReportRequest):
             threats_summary=report.threats_summary,
             pricing_suggestion=report.pricing_suggestion,
             pricing_value_estimate=report.pricing_value_estimate,
+            recommended_schemes=[
+                GovernmentSchemeResponse(
+                    scheme_name=s.scheme_name,
+                    subsidy_benefit=s.subsidy_benefit,
+                    eligibility_fit=s.eligibility_fit,
+                )
+                for s in report.recommended_schemes
+            ],
         )
     except LLMReportError as e:
         business_report_error = str(e)
-
-    applicable_schemes = [
-        GovernmentSchemeResponse(id=s.id, name=s.name, description=s.description)
-        for s in get_applicable_schemes(translated.business_category, plan.project_cost)
-    ]
 
     return GenerateReportResponse(
         location=f"{market_metrics.village_name}, {market_metrics.district_name}, {market_metrics.state_name}",
@@ -245,5 +247,4 @@ def generate_report(request: GenerateReportRequest):
         financial_plan=financial_plan_response,
         business_report=business_report_response,
         business_report_error=business_report_error,
-        applicable_schemes=applicable_schemes,
     )

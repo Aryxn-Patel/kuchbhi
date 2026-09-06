@@ -150,7 +150,7 @@ function ReportPage() {
 
   const { response } = data;
   const metrics = response.market_metrics;
-  const schemes = response.applicable_schemes ?? [];
+  const schemes = response.business_report?.recommended_schemes ?? [];
   const plan = response.financial_plan;
   const schedule = plan?.emi_schedule ?? [];
   const isReportMissing = response.business_report === null || response.business_report === undefined;
@@ -226,27 +226,18 @@ function ReportPage() {
           <h2 className="text-lg font-bold text-ud-navy">{t("schemesTitle")}</h2>
           <p className="mt-1 text-sm text-ud-navy/70">{t("schemesSub")}</p>
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
-            {schemes.map((scheme) => {
-              const nameKey = `scheme_${scheme.id}_name`;
-              const descKey = `scheme_${scheme.id}_desc`;
-              const localizedName = t(nameKey);
-              const localizedDesc = t(descKey);
-              return (
-                <div key={scheme.id} className="border-2 border-ud-green bg-white p-4">
-                  <div className="flex items-start gap-2">
-                    <Landmark className="mt-0.5 h-5 w-5 shrink-0 text-ud-govtblue" />
-                    <div>
-                      <p className="font-bold text-ud-navy">
-                        {localizedName !== nameKey ? localizedName : scheme.name}
-                      </p>
-                      <p className="mt-1 text-sm text-ud-navy/80">
-                        {localizedDesc !== descKey ? localizedDesc : scheme.description}
-                      </p>
-                    </div>
+            {schemes.map((scheme, idx) => (
+              <div key={`${scheme.scheme_name}-${idx}`} className="border-2 border-ud-green bg-white p-4">
+                <div className="flex items-start gap-2">
+                  <Landmark className="mt-0.5 h-5 w-5 shrink-0 text-ud-govtblue" />
+                  <div>
+                    <p className="font-bold text-ud-navy">{scheme.scheme_name}</p>
+                    <p className="mt-1 text-sm text-ud-navy/80">{scheme.subsidy_benefit}</p>
+                    <p className="mt-1 text-sm text-ud-navy/60 italic">{scheme.eligibility_fit}</p>
                   </div>
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
         </section>
       )}

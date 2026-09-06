@@ -1,6 +1,6 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Landmark, Pencil } from "lucide-react";
+import { Landmark, Pencil, AlertTriangle } from "lucide-react";
 
 import { SiteLayout } from "@/components/SiteLayout";
 import { useI18n } from "@/lib/i18n";
@@ -190,6 +190,36 @@ function ReportPage() {
           <p className="mt-2 text-sm font-semibold text-ud-govtblue">{t("regeneratingReport")}</p>
         )}
       </div>
+
+      {!response.capital_advisory.is_sufficient && (
+        <section className="mt-4 border-2 border-red-600 bg-red-50 p-5">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="mt-0.5 h-6 w-6 shrink-0 text-red-600" />
+            <div>
+              <p className="font-bold text-red-800">{t("capitalTooLowTitle")}</p>
+              <p className="mt-1 text-sm text-red-800">
+                {t("capitalTooLowBody")
+                  .replace("{minCapital}", formatINR(response.capital_advisory.category_min_capital))
+                  .replace("{category}", response.business_category)}
+              </p>
+              {response.capital_advisory.viable_categories.length > 0 ? (
+                <p className="mt-2 text-sm text-red-800">
+                  <span className="font-semibold">{t("capitalTooLowViable")}: </span>
+                  {response.capital_advisory.viable_categories.map((c) => t(c)).join(", ")}
+                </p>
+              ) : (
+                <p className="mt-2 text-sm text-red-800">{t("capitalTooLowNoneViable")}</p>
+              )}
+              <Link
+                to="/"
+                className="mt-3 inline-block rounded-[3px] border-2 border-red-700 bg-white px-4 py-1.5 text-sm font-bold text-red-700"
+              >
+                {t("editDetails")}
+              </Link>
+            </div>
+          </div>
+        </section>
+      )}
 
       <section className="mt-6">
         <h2 className="text-lg font-bold text-ud-navy">{t("marketSnapshot")}</h2>

@@ -102,6 +102,13 @@ export interface GovernmentScheme {
   description: string;
 }
 
+export interface CapitalAdvisory {
+  is_sufficient: boolean;
+  min_recommended_capital: number;
+  category_min_capital: number;
+  viable_categories: string[];
+}
+
 export interface GenerateReportResponse {
   location: string;
   business_category: string;
@@ -112,6 +119,7 @@ export interface GenerateReportResponse {
   business_report: BusinessReport | null;
   business_report_error: string | null;
   applicable_schemes: GovernmentScheme[];
+  capital_advisory: CapitalAdvisory;
 }
 
 export interface GenerateReportRequest {

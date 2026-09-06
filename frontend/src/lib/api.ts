@@ -81,6 +81,7 @@ export interface MarketMetrics {
   infrastructure_readiness_score: number;
   economy_type_ratio: number;
   live_competitor_count: number | null;
+  competitor_breakdown: string | null;
 }
 
 export interface SWOT {

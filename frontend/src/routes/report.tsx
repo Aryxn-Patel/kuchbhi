@@ -151,6 +151,8 @@ function ReportPage() {
   const { response } = data;
   const metrics = response.market_metrics;
   const schemes = response.applicable_schemes ?? [];
+  const plan = response.financial_plan;
+  const schedule = plan?.emi_schedule ?? [];
   const isReportMissing = response.business_report === null || response.business_report === undefined;
   const swot = isReportMissing ? null : normalizeSwot(response.business_report?.swot);
 
@@ -303,13 +305,90 @@ function ReportPage() {
         </>
       )}
 
-      <div className="no-print mt-6">
-        <Link
-          to="/roadmap"
-          className="inline-block rounded-[3px] bg-ud-govtblue px-6 py-3 font-bold text-white hover:bg-ud-govtblue/90"
+      <section className="mt-6">
+        <h2 className="text-lg font-bold text-ud-navy">{t("roadmapTitle")}</h2>
+        <div className="mt-3 grid gap-4 sm:grid-cols-3">
+          <Stat label={t("projectCost")} value={formatINR(plan?.project_cost)} />
+          <Stat label={t("loanAmount")} value={formatINR(plan?.loan_amount)} />
+          <Stat label={t("ownCapital")} value={formatINR(data.request.available_capital)} />
+        </div>
+
+        <div className="mt-4 border-2 border-ud-navy bg-white">
+          <h3 className="border-b-2 border-ud-navy bg-ud-tan/30 px-4 py-2 text-center text-sm font-bold tracking-[0.2em] text-ud-navy uppercase">
+            {t("scheme")}
+          </h3>
+          <div className="p-5 text-center">
+            <p className="text-2xl font-bold text-ud-navy">{plan?.scheme_name ?? "—"}</p>
+            <dl className="mt-4 grid gap-3 text-base text-ud-navy sm:grid-cols-3">
+              <div className="border border-ud-govtblue p-3">
+                <dt className="text-sm text-ud-navy/70 uppercase">{t("interest")}</dt>
+                <dd className="font-bold">
+                  {plan ? (plan.interest_rate_annual * 100).toFixed(2) + "%" : "—"}
+                </dd>
+              </div>
+              <div className="border border-ud-govtblue p-3">
+                <dt className="text-sm text-ud-navy/70 uppercase">{t("tenure")}</dt>
+                <dd className="font-bold">
+                  {plan?.tenure_years} {t("years")}
+                </dd>
+              </div>
+              <div className="border border-ud-govtblue p-3">
+                <dt className="text-sm text-ud-navy/70 uppercase">{t("moratorium")}</dt>
+                <dd className="font-bold">
+                  {plan?.moratorium_months} {t("months")}
+                </dd>
+              </div>
+            </dl>
+          </div>
+        </div>
+
+        <div className="mt-4 border border-ud-govtblue bg-white">
+          <h3 className="border-b border-ud-govtblue bg-ud-govtblue px-4 py-2.5 text-lg font-bold text-white">
+            {t("emiSchedule")}
+          </h3>
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse text-base">
+              <thead>
+                <tr className="bg-ud-tan/30 text-left text-ud-navy">
+                  <th className="border border-ud-govtblue px-3 py-2">{t("quarter")}</th>
+                  <th className="border border-ud-govtblue px-3 py-2">{t("emi")}</th>
+                  <th className="border border-ud-govtblue px-3 py-2">{t("interestComp")}</th>
+                  <th className="border border-ud-govtblue px-3 py-2">{t("principalComp")}</th>
+                  <th className="border border-ud-govtblue px-3 py-2">{t("closing")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {schedule.map((row, i) => (
+                  <tr key={row.quarter} className={i % 2 ? "bg-ud-tan/10" : "bg-white"}>
+                    <td className="border border-ud-govtblue px-3 py-2 text-ud-navy">{row.quarter}</td>
+                    <td className="border border-ud-govtblue px-3 py-2 text-ud-navy">
+                      {formatINR(row.emi)}
+                    </td>
+                    <td className="border border-ud-govtblue px-3 py-2 text-ud-navy">
+                      {formatINR(row.interest_component)}
+                    </td>
+                    <td className="border border-ud-govtblue px-3 py-2 text-ud-navy">
+                      {formatINR(row.principal_component)}
+                    </td>
+                    <td className="border border-ud-govtblue px-3 py-2 text-ud-navy">
+                      {formatINR(row.closing_balance)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <div className="no-print mt-6 flex flex-wrap gap-3">
+        <button
+          type="button"
+          onClick={() => window.print()}
+          className="rounded-[3px] border-2 border-ud-navy bg-ud-govtblue px-5 py-2.5 text-base font-bold text-white"
         >
-          {t("next")}
-        </Link>
+          {t("print")}
+        </button>
       </div>
     </SiteLayout>
   );

@@ -193,7 +193,7 @@ def generate_report(request: GenerateReportRequest):
             business_type=translated.business_category,
         )
         live_competitor_count = live_data.competitor_count
-    except LiveMarketError:
+        except LiveMarketError as e:
         print(f"LIVE COMPETITOR ERROR: {e}")  # fall back silently to the census-based business_saturation_index
 
     try:

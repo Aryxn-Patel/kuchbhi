@@ -140,7 +140,21 @@ def build_financial_plan(available_capital: float) -> FinancialPlan:
     scheme_name = select_scheme(project_cost)
     scheme = SCHEMES[scheme_name]
 
-    loan_amount = min(loan_amount, scheme["max_loan"])
+    capped_loan_amount = min(loan_amount, scheme["max_loan"])
+
+    if capped_loan_amount < loan_amount:
+        # FIX: previously, when the scheme's max_loan cap kicked in, the loan
+        # shrank but project_cost stayed at the naive 10x multiplier of
+        # available_capital. That left a silent funding gap (project_cost >
+        # available_capital + loan_amount) with no explanation to the user.
+        #
+        # Instead, shrink project_cost to exactly what available_capital plus
+        # the capped loan can fund. The entrepreneur ends up with a smaller
+        # (but fully funded) project rather than a plan with an invisible hole.
+        loan_amount = capped_loan_amount
+        project_cost = round(available_capital + loan_amount, 2)
+    else:
+        loan_amount = capped_loan_amount
 
     emi, schedule, total_interest, total_repayment = generate_emi_schedule(loan_amount, scheme_name)
 

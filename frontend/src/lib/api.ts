@@ -33,16 +33,9 @@ export interface DistrictsResponse {
   districts: string[];
 }
 
-export interface BlocksResponse {
-  state_name: string;
-  district_name: string;
-  blocks: string[];
-}
-
 export interface VillagesResponse {
   state_name: string;
   district_name: string;
-  subdistrict_name?: string | null;
   villages: string[];
 }
 
@@ -80,6 +73,7 @@ export interface MarketMetrics {
   true_disposable_wealth: number;
   infrastructure_readiness_score: number;
   economy_type_ratio: number;
+  live_competitor_count: number | null;
 }
 
 export interface SWOT {
@@ -117,7 +111,6 @@ export interface GenerateReportResponse {
 export interface GenerateReportRequest {
   state_name: string;
   district_name: string;
-  subdistrict_name?: string;
   village_name: string;
   business_category: string;
   available_capital: number;
@@ -158,23 +151,8 @@ export async function getDistricts(stateName: string): Promise<DistrictsResponse
   return response.json();
 }
 
-export async function getBlocks(stateName: string, districtName: string): Promise<BlocksResponse> {
-  const url = `${BASE_URL}/locations/blocks?state_name=${encodeURIComponent(stateName)}&district_name=${encodeURIComponent(districtName)}`;
-  const response = await fetchWithTimeout(url);
-  if (!response.ok) {
-    throw new ApiError(response.status, await parseErrorDetail(response));
-  }
-  return response.json();
-}
-
-export async function getVillages(
-  stateName: string,
-  districtName: string,
-  subdistrictName?: string,
-): Promise<VillagesResponse> {
-  const params = new URLSearchParams({ state_name: stateName, district_name: districtName });
-  if (subdistrictName) params.set("subdistrict_name", subdistrictName);
-  const url = `${BASE_URL}/locations/villages?${params.toString()}`;
+export async function getVillages(stateName: string, districtName: string): Promise<VillagesResponse> {
+  const url = `${BASE_URL}/locations/villages?state_name=${encodeURIComponent(stateName)}&district_name=${encodeURIComponent(districtName)}`;
   const response = await fetchWithTimeout(url);
   if (!response.ok) {
     throw new ApiError(response.status, await parseErrorDetail(response));

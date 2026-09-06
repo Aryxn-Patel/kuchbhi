@@ -66,11 +66,12 @@ function InfrastructureBar({ score }: { score: number }) {
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({ label, value, subtext }: { label: string; value: string; subtext?: string | null }) {
   return (
     <div className="border border-ud-gold bg-ud-cream p-4">
       <p className="text-sm font-semibold tracking-wide text-ud-ochre uppercase">{label}</p>
       <p className="mt-1 text-2xl font-bold text-ud-brown">{value}</p>
+      {subtext && <p className="mt-1 text-sm text-ud-brown opacity-70">{subtext}</p>}
     </div>
   );
 }
@@ -146,7 +147,11 @@ function ReportPage() {
           </div>
           <Stat label={t("economy")} value={formatNum(metrics.economy_type_ratio, 3)} />
           {metrics.live_competitor_count !== null && metrics.live_competitor_count !== undefined && (
-            <Stat label={t("competitorDensity")} value={`${metrics.live_competitor_count} nearby`} />
+            <Stat
+              label={t("competitorDensity")}
+              value={`${metrics.live_competitor_count} nearby`}
+              subtext={metrics.competitor_breakdown}
+            />
           )}
         </div>
       </section>
@@ -222,4 +227,4 @@ function ReportPage() {
       </div>
     </SiteLayout>
   );
-}
+} 

@@ -121,10 +121,20 @@ function ReportPage() {
   return (
     <SiteLayout>
       <div className="border border-ud-gold bg-ud-sand p-5">
-        <h1 className="text-2xl font-bold text-ud-brown sm:text-3xl">{t("reportTitle")}</h1>
-        <p className="mt-1 text-base text-ud-brown capitalize">
-          {response.location} · {response.business_category}
-        </p>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-ud-brown sm:text-3xl">{t("reportTitle")}</h1>
+            <p className="mt-1 text-base text-ud-brown capitalize">
+              {response.location} · {response.business_category}
+            </p>
+          </div>
+          <Link
+            to="/"
+            className="no-print shrink-0 rounded-[3px] border-2 border-ud-brown bg-white px-4 py-2 text-sm font-bold text-ud-brown hover:bg-ud-cream"
+          >
+            {t("editDetails")}
+          </Link>
+        </div>
       </div>
 
       <section className="mt-6">
@@ -227,4 +237,4 @@ function ReportPage() {
       </div>
     </SiteLayout>
   );
-} 
+}

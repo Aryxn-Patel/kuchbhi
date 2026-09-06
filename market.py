@@ -8,7 +8,7 @@ from langchain.tools import tool
 from dotenv import load_dotenv
 load_dotenv()
 
-GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY")
+GOOGLE_MAPS_API_KEY = os.getenv("AIzaSyDndtc8VSrHflwzSbGJiyxKLLMpOQi9n9E")
 
 
 # Sector mapping to match the broad categories with valid Google Places API types

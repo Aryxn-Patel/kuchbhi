@@ -2,7 +2,7 @@ import os
 import json
 from groq import Groq
 from dataclasses import dataclass
-from typing import List
+from typing import List, Optional
 
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
 MODEL_NAME = "openai/gpt-oss-120b"
@@ -35,7 +35,14 @@ class LLMReportError(Exception):
 def build_prompt(location: str, business_category: str, available_capital: float,
                   market_density: float, business_saturation_index: float,
                   true_disposable_wealth: float, infrastructure_readiness_score: float,
-                  economy_type_ratio: float, language: str) -> str:
+                  economy_type_ratio: float, language: str,
+                  live_competitor_count: Optional[int] = None) -> str:
+
+    live_competitor_line = (
+        f"- Live Competitor Count (within 5km, Google Maps data): {live_competitor_count}"
+        if live_competitor_count is not None
+        else "- Live Competitor Count: unavailable (rely on Business Saturation Index instead)"
+    )
 
     return f"""
 You are an expert rural business consultant in India. Generate a business feasibility
@@ -53,6 +60,7 @@ CALCULATED MARKET METRICS:
 - True Disposable Wealth Index (Rs.): {true_disposable_wealth}
 - Infrastructure Readiness Score (0 to 5): {infrastructure_readiness_score}
 - Economy Type Ratio (services employment / total employment): {economy_type_ratio}
+{live_competitor_line}
 
 HOW TO INTERPRET EACH METRIC:
 1. Market Density: High density means walk-in foot traffic. Low means marketing needed.
@@ -60,6 +68,7 @@ HOW TO INTERPRET EACH METRIC:
 3. True Disposable Wealth Index: Use this to justify your pricing suggestion.
 4. Infrastructure Readiness Score: 4-5 means easy setup. 0-1 means real capital challenges (power/roads). Highlight low scores in Weaknesses/Threats.
 5. Economy Type Ratio: > 0.5 favors consumer/services. < 0.5 favors industrial/agri.
+6. Live Competitor Count: If available, this is real-time ground data and takes priority over the Business Saturation Index for competitor-related points. If unavailable, use the Business Saturation Index instead and do not mention live data.
 
 GOVERNMENT SCHEME MATCHING:
 Using your knowledge of Indian central and state government policies, subsidies, and
@@ -106,7 +115,8 @@ def parse_llm_response(raw_text: str) -> dict:
 def generate_business_report(location: str, business_category: str, available_capital: float,
                               market_density: float, business_saturation_index: float,
                               true_disposable_wealth: float, infrastructure_readiness_score: float,
-                              economy_type_ratio: float, language: str = "English") -> BusinessReport:
+                              economy_type_ratio: float, language: str = "English",
+                              live_competitor_count: Optional[int] = None) -> BusinessReport:
 
     if not GROQ_API_KEY:
         raise LLMReportError("GROQ_API_KEY environment variable is not set.")
@@ -115,7 +125,8 @@ def generate_business_report(location: str, business_category: str, available_ca
         location=location, business_category=business_category, available_capital=available_capital,
         market_density=market_density, business_saturation_index=business_saturation_index,
         true_disposable_wealth=true_disposable_wealth, infrastructure_readiness_score=infrastructure_readiness_score,
-        economy_type_ratio=economy_type_ratio, language=language
+        economy_type_ratio=economy_type_ratio, language=language,
+        live_competitor_count=live_competitor_count,
     )
 
     client = Groq(api_key=GROQ_API_KEY)

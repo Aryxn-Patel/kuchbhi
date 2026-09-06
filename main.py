@@ -15,9 +15,10 @@ from market_engine import (
     TranslationError,
     MarketMetrics,
 )
+from market import get_live_competitor_density, LiveMarketError
 from llm_report_generator import generate_business_report, LLMReportError
 
-app = FastAPI(title="SIH26091 Combined API", version="0.4.0")
+app = FastAPI(title="SIH26091 Combined API", version="0.5.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -75,10 +76,11 @@ class MarketMetricsResponse(BaseModel):
     true_disposable_wealth: float
     infrastructure_readiness_score: float
     economy_type_ratio: float
+    live_competitor_count: Optional[int] = None
 
     @classmethod
-    def from_dataclass(cls, m: MarketMetrics):
-        return cls(**m.__dict__)
+    def from_dataclass(cls, m: MarketMetrics, live_competitor_count: Optional[int] = None):
+        return cls(**m.__dict__, live_competitor_count=live_competitor_count)
 
 
 class SWOTResponse(BaseModel):
@@ -181,6 +183,19 @@ def generate_report(request: GenerateReportRequest):
     except MarketDataError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+    # Live competitor check via Google Places — best-effort, never blocks the request
+    live_competitor_count: Optional[int] = None
+    try:
+        live_data = get_live_competitor_density(
+            village_name=market_metrics.village_name,
+            district_name=market_metrics.district_name,
+            state_name=market_metrics.state_name,
+            business_type=translated.business_category,
+        )
+        live_competitor_count = live_data.competitor_count
+    except LiveMarketError:
+        pass  # fall back silently to the census-based business_saturation_index
+
     try:
         plan = build_financial_plan(request.available_capital)
     except FinancialEngineError as e:
@@ -199,7 +214,9 @@ def generate_report(request: GenerateReportRequest):
         emi_schedule=[EMIInstallmentResponse.from_dataclass(i) for i in plan.emi_schedule],
     )
 
-    market_metrics_response = MarketMetricsResponse.from_dataclass(market_metrics)
+    market_metrics_response = MarketMetricsResponse.from_dataclass(
+        market_metrics, live_competitor_count=live_competitor_count
+    )
 
     business_report_response = None
     business_report_error = None
@@ -215,6 +232,7 @@ def generate_report(request: GenerateReportRequest):
             infrastructure_readiness_score=market_metrics.infrastructure_readiness_score,
             economy_type_ratio=market_metrics.economy_type_ratio,
             language=request.language,
+            live_competitor_count=live_competitor_count,
         )
         business_report_response = BusinessReportResponse(
             swot=SWOTResponse(

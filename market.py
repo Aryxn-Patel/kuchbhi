@@ -1,148 +1,60 @@
 import os
 import requests
-from dataclasses import dataclass
-from typing import Optional
+import pandas as pd
+from langchain.agents import initialize_agent, AgentType
+from langchain_openai import ChatOpenAI
+from langchain.agents.agent_toolkits import create_pandas_dataframe_agent
+from langchain.tools import tool
 
-GOOGLE_MAPS_API_KEY = os.environ.get("GOOGLE_MAPS_API_KEY")
+GOOGLE_MAPS_API_KEY = os.getenv(
+    "GOOGLE_MAPS_API_KEY", "AIzaSyCGTM2nmlELS3K1BtZHJU4LRSSumudyUzI")
 
-# Sector mapping to match the broad categories with valid Google Places API (New) types.
-# IMPORTANT: only use types from Google's official supported list —
-# https://developers.google.com/maps/documentation/places/web-service/place-types
-# Invalid types cause a 400 Bad Request on the whole request, not a partial result.
-SECTOR_MAPPING = {
-    "food processing / agro / rice mills": ["grocery_store", "supermarket"],
-    "manufacturing / general msme / retail": ["store", "hardware_store", "clothing_store", "convenience_store"],
-    "large industrial / service units": ["store"],
-    "handloom, handicrafts & bamboo crafts": ["home_goods_store", "clothing_store", "art_gallery"],
-    "technology / it / digital services": ["electronics_store"],
-    # fallback for canonical categories used elsewhere in the app
-    "dairy": ["grocery_store", "supermarket"],
-    "retail": ["store", "convenience_store", "clothing_store"],
-    "textiles": ["clothing_store", "home_goods_store"],
-    "food processing": ["grocery_store", "supermarket"],
-    "general store": ["convenience_store", "store"],
-}
+@tool("analyze_market_feasibility")
+def analyze_market_feasibility(village_name: str, district_name: str, state_name: str, selected_business_types: str) -> str:
+    """Performs an on-demand check for location coordinates and live competitor density using Google APIs."""
 
-DEFAULT_TYPES = ["store", "convenience_store"]
-
-
-class LiveMarketError(Exception):
-    pass
-
-
-@dataclass
-class LiveCompetitorData:
-    latitude: float
-    longitude: float
-    competitor_count: int
-    competitor_breakdown: str  # Frontend par dikhane ke liye nayi field
-    radius_km: float
-    sector_types_checked: list
-
-
-def _resolve_sector_types(business_type: str) -> list:
-    """
-    Resolve a business_type string to Google Places types.
-
-    Tries an exact match first. If that fails (e.g. an LLM-translated
-    category like "Dairy Products" instead of the canonical "Dairy"),
-    falls back to a substring match against known keys before giving up
-    and using the generic DEFAULT_TYPES — which pulls in unrelated results
-    (e.g. electronics stores showing up under "Dairy").
-    """
-    normalized = business_type.lower().strip()
-
-    if normalized in SECTOR_MAPPING:
-        return SECTOR_MAPPING[normalized]
-
-    for key, types in SECTOR_MAPPING.items():
-        if key in normalized or normalized in key:
-            return types
-
-    return DEFAULT_TYPES
-
-
-def _geocode(village_name: str, district_name: str, state_name: str) -> tuple:
-    if not GOOGLE_MAPS_API_KEY:
-        raise LiveMarketError("GOOGLE_MAPS_API_KEY is not configured.")
-
+    # 1. On-Demand Geocoding to fetch lat/lng
     address = f"{village_name}, {district_name}, {state_name}, India"
-    url = (
-        "https://maps.googleapis.com/maps/api/geocode/json"
-        f"?address={requests.utils.quote(address)}&key={GOOGLE_MAPS_API_KEY}"
-    )
+    geocode_url = f"https://maps.googleapis.com/maps/api/geocode/json?address={requests.utils.quote(address)}&key={GOOGLE_MAPS_API_KEY}"
 
-    try:
-        resp = requests.get(url, timeout=10).json()
-    except Exception as e:
-        raise LiveMarketError(f"Geocoding request failed: {e}")
+    geo_res = requests.get(geocode_url).json()
+    if not geo_res.get('results'):
+        return f"0 {selected_business_types} nearby"
 
-    if resp.get("status") != "OK" or not resp.get("results"):
-        raise LiveMarketError(
-            f"Could not geocode '{address}' (status={resp.get('status')})."
-        )
+    location = geo_res['results'][0]['geometry']['location']
+    lat, lng = location['lat'], location['lng']
 
-    location = resp["results"][0]["geometry"]["location"]
-    return location["lat"], location["lng"]
+    # 2. Format the selected business types
+    types_list = [t.strip().lower().replace(" ", "_") for t in selected_business_types.split(",") if t.strip()]
 
-
-def get_live_competitor_density(
-    village_name: str,
-    district_name: str,
-    state_name: str,
-    business_type: str,
-    radius_km: float = 5.0,
-) -> LiveCompetitorData:
-    """
-    Geocodes the given location and counts nearby businesses matching the
-    sector via Google Places (New) searchNearby. Raises LiveMarketError on
-    any failure — callers should treat this as best-effort and fall back
-    to the static census-derived business_saturation_index if it fails.
-    """
-    lat, lng = _geocode(village_name, district_name, state_name)
-
-    target_types = _resolve_sector_types(business_type)
-
-    url = "https://places.googleapis.com/v1/places:searchNearby"
+    # 3. On-Demand Google Places API call
+    places_url = "https://places.googleapis.com/v1/places:searchNearby"
     headers = {
         "Content-Type": "application/json",
         "X-Goog-Api-Key": GOOGLE_MAPS_API_KEY,
-        "X-Goog-FieldMask": "places.displayName,places.primaryType",
+        "X-Goog-FieldMask": "places.displayName"
     }
     payload = {
-        "includedTypes": target_types,
-        "maxResultCount": 20,
+        "includedTypes": types_list,
+        "maxResultCount": 20,  # Max limit set to 20 to check the threshold
         "locationRestriction": {
             "circle": {
                 "center": {"latitude": lat, "longitude": lng},
-                "radius": radius_km * 1000,
+                "radius": 5000  
             }
-        },
+        }
     }
 
-    try:
-        res = requests.post(url, json=payload, headers=headers, timeout=10)
-        res.raise_for_status()
-        places = res.json().get("places", [])
+    places_res = requests.post(places_url, json=payload, headers=headers)
+    competitor_count = 0
+    
+    if places_res.status_code == 200:
+        places = places_res.json().get('places', [])
+        competitor_count = len(places)
+    else:
+        return f"API Error: {places_res.status_code}"
 
-        # Har category ka alag count nikalne ka logic
-        category_counts = {}
-        for place in places:
-            primary_type = place.get('primaryType', 'Other')
-            category_counts[primary_type] = category_counts.get(primary_type, 0) + 1
-
-        # Format: "Grocery Store: 10, Convenience Store: 5"
-        breakdown_list = [f"{k.replace('_', ' ').title()}: {v}" for k, v in category_counts.items()]
-        breakdown_str = ", ".join(breakdown_list) if breakdown_list else "No active competitors found"
-
-    except Exception as e:
-        raise LiveMarketError(f"Places API call failed: {e}")
-
-    return LiveCompetitorData(
-        latitude=lat,
-        longitude=lng,
-        competitor_count=len(places),
-        competitor_breakdown=breakdown_str,
-        radius_km=radius_km,
-        sector_types_checked=target_types,
-    )
+    # 4. Format output to exactly "<count> <business_type> nearby"
+    display_count = "20+" if competitor_count >= 20 else str(competitor_count)
+    
+    return f"{display_count} {selected_business_types} nearby"

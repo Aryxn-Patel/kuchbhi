@@ -5,22 +5,25 @@ from typing import Optional
 
 GOOGLE_MAPS_API_KEY = os.environ.get("GOOGLE_MAPS_API_KEY")
 
-# Sector mapping to match the broad categories with valid Google Places API types
+# Sector mapping to match the broad categories with valid Google Places API (New) types.
+# IMPORTANT: only use types from Google's official supported list —
+# https://developers.google.com/maps/documentation/places/web-service/place-types
+# Invalid types cause a 400 Bad Request on the whole request, not a partial result.
 SECTOR_MAPPING = {
-    "food processing / agro / rice mills": ["grocery_store", "supermarket", "food_product_supplier"],
+    "food processing / agro / rice mills": ["grocery_store", "supermarket"],
     "manufacturing / general msme / retail": ["store", "hardware_store", "clothing_store", "convenience_store"],
-    "large industrial / service units": ["establishment", "corporate_office"],
+    "large industrial / service units": ["store"],
     "handloom, handicrafts & bamboo crafts": ["home_goods_store", "clothing_store", "art_gallery"],
-    "technology / it / digital services": ["electronics_store", "corporate_office"],
+    "technology / it / digital services": ["electronics_store"],
     # fallback for canonical categories used elsewhere in the app
-    "dairy": ["grocery_store", "supermarket", "food_product_supplier"],
+    "dairy": ["grocery_store", "supermarket"],
     "retail": ["store", "convenience_store", "clothing_store"],
     "textiles": ["clothing_store", "home_goods_store"],
-    "food processing": ["grocery_store", "supermarket", "food_product_supplier"],
+    "food processing": ["grocery_store", "supermarket"],
     "general store": ["convenience_store", "store"],
 }
 
-DEFAULT_TYPES = ["store", "establishment", "convenience_store"]
+DEFAULT_TYPES = ["store", "convenience_store"]
 
 
 class LiveMarketError(Exception):

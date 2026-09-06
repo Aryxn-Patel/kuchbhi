@@ -17,7 +17,6 @@ from market_engine import (
 )
 from llm_report_generator import generate_business_report, LLMReportError
 from schemes import get_applicable_schemes
-from capital_advisory import get_capital_advisory
 
 app = FastAPI(title="SIH26091 Combined API", version="0.4.0")
 
@@ -103,13 +102,6 @@ class GovernmentSchemeResponse(BaseModel):
     description: str
 
 
-class CapitalAdvisoryResponse(BaseModel):
-    is_sufficient: bool
-    min_recommended_capital: float
-    category_min_capital: float
-    viable_categories: List[str]
-
-
 class GenerateReportResponse(BaseModel):
     location: str
     business_category: str
@@ -120,7 +112,6 @@ class GenerateReportResponse(BaseModel):
     business_report: Optional[BusinessReportResponse]
     business_report_error: Optional[str]
     applicable_schemes: List[GovernmentSchemeResponse]
-    capital_advisory: CapitalAdvisoryResponse
 
 
 @app.get("/health")
@@ -245,14 +236,6 @@ def generate_report(request: GenerateReportRequest):
         for s in get_applicable_schemes(translated.business_category, plan.project_cost)
     ]
 
-    advisory = get_capital_advisory(translated.business_category, request.available_capital)
-    capital_advisory_response = CapitalAdvisoryResponse(
-        is_sufficient=advisory.is_sufficient,
-        min_recommended_capital=advisory.min_recommended_capital,
-        category_min_capital=advisory.category_min_capital,
-        viable_categories=advisory.viable_categories,
-    )
-
     return GenerateReportResponse(
         location=f"{market_metrics.village_name}, {market_metrics.district_name}, {market_metrics.state_name}",
         business_category=request.business_category,
@@ -263,5 +246,4 @@ def generate_report(request: GenerateReportRequest):
         business_report=business_report_response,
         business_report_error=business_report_error,
         applicable_schemes=applicable_schemes,
-        capital_advisory=capital_advisory_response,
     )

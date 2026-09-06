@@ -7,6 +7,7 @@ from typing import List, Optional
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
 MODEL_NAME = "openai/gpt-oss-120b"
 
+
 @dataclass
 class SWOT:
     strengths: List[str]
@@ -14,11 +15,13 @@ class SWOT:
     opportunities: List[str]
     threats: List[str]
 
+
 @dataclass
 class GovernmentScheme:
     scheme_name: str
     subsidy_benefit: str
     eligibility_fit: str
+
 
 @dataclass
 class BusinessReport:
@@ -29,8 +32,54 @@ class BusinessReport:
     recommended_schemes: List[GovernmentScheme]
     language: str
 
+
 class LLMReportError(Exception):
     pass
+
+
+# ---------------------------------------------------------------------------
+# Fallback scheme-name translations.
+#
+# LLMs are inconsistent about translating official government scheme names —
+# they often treat acronyms like "PMEGP" or "MUDRA" as untranslatable proper
+# nouns even when explicitly instructed to write everything in the target
+# language. Rather than relying on the model to comply every time, we
+# normalize known scheme names after the fact using this lookup table.
+#
+# Add more entries here as you see new scheme names showing up in English.
+# Matching is done as a case-insensitive substring search against whatever
+# the LLM returned, so partial names / extra wording around the acronym
+# still match.
+# ---------------------------------------------------------------------------
+SCHEME_NAME_TRANSLATIONS = {
+    "hindi": {
+        "PMEGP": "प्रधानमंत्री रोजगार सृजन कार्यक्रम (PMEGP)",
+        "MUDRA": "प्रधानमंत्री मुद्रा योजना",
+        "CLSS": "क्रेडिट लिंक्ड सब्सिडी योजना (CLSS)",
+        "STAND-UP INDIA": "स्टैंड-अप इंडिया योजना",
+        "PMFME": "प्रधानमंत्री सूक्ष्म खाद्य प्रसंस्करण उद्यम योजना (PMFME)",
+        "NABARD": "नाबार्ड ऋण योजना",
+        "NATIONAL LIVESTOCK MISSION": "राष्ट्रीय पशुधन मिशन",
+    },
+    # Add more languages here as needed, e.g. "assamese": {...}
+}
+
+
+def normalize_scheme_name(name: str, language: str) -> str:
+    """
+    Force known government scheme names into the target language, regardless
+    of what the LLM actually returned. Falls back to the LLM's original text
+    if the language isn't in our table or no known scheme matches.
+    """
+    lang_map = SCHEME_NAME_TRANSLATIONS.get(language.strip().lower())
+    if not lang_map or not name:
+        return name
+
+    for key, translated in lang_map.items():
+        if key.lower() in name.lower():
+            return translated
+    return name
+
 
 def build_prompt(location: str, business_category: str, available_capital: float,
                   market_density: float, business_saturation_index: float,
@@ -76,8 +125,19 @@ credit schemes (such as PMFME, PMEGP, MUDRA, Stand-Up India, National Livestock 
 NABARD schemes, and relevant state-specific grants), recommend 2-3 schemes that are the
 best fit for this entrepreneur, based on their business type, location, and available
 capital. Only suggest schemes that are plausibly real and relevant — do not invent scheme
-names. Every field you write, including scheme names and benefits, must be natively
-written in {language}, not just transliterated.
+names.
+
+CRITICAL LANGUAGE RULE FOR SCHEME NAMES:
+"scheme_name" must be written FULLY in {language} script — including the scheme's
+official meaning, not just the English acronym. Spell out what the acronym stands for
+in {language}, and you may keep the English short-code in brackets after it, but the
+short-code alone is NOT acceptable as the whole field.
+Example for Hindi:
+  WRONG: "scheme_name": "PMEGP"
+  WRONG: "scheme_name": "Prime Minister's Employment Generation Programme (PMEGP)"
+  RIGHT: "scheme_name": "प्रधानमंत्री रोजगार सृजन कार्यक्रम (PMEGP)"
+Apply the same rule to every other field — "subsidy_benefit" and "eligibility_fit" must
+also be natively written in {language}, not transliterated and not left in English.
 
 Return ONLY valid JSON, no markdown formatting, no code fences, in exactly this shape:
 {{
@@ -90,15 +150,17 @@ Return ONLY valid JSON, no markdown formatting, no code fences, in exactly this 
   "pricing_value_estimate": "a specific suggested price range, e.g. Rs. 30-40 per unit",
   "recommended_schemes": [
     {{
-      "scheme_name": "name of a relevant central or state government scheme",
+      "scheme_name": "name of a relevant central or state government scheme, fully in {language} per the rule above",
       "subsidy_benefit": "one short line on the subsidy/loan/credit benefit it offers",
       "eligibility_fit": "one short line on why it fits this entrepreneur's business, location, and capital"
     }}
   ]
 }}
+
 Each list should have 2-3 short items, each under 15 words.
 "recommended_schemes" must contain 2-3 entries.
 """
+
 
 def parse_llm_response(raw_text: str) -> dict:
     cleaned = raw_text.strip()
@@ -107,10 +169,12 @@ def parse_llm_response(raw_text: str) -> dict:
         if cleaned.startswith("json"):
             cleaned = cleaned[4:]
     cleaned = cleaned.strip()
+
     try:
         return json.loads(cleaned)
     except json.JSONDecodeError as e:
         raise LLMReportError(f"Failed to parse LLM output as JSON: {e}\nRaw output: {raw_text}")
+
 
 def generate_business_report(location: str, business_category: str, available_capital: float,
                               market_density: float, business_saturation_index: float,
@@ -130,7 +194,6 @@ def generate_business_report(location: str, business_category: str, available_ca
     )
 
     client = Groq(api_key=GROQ_API_KEY)
-
     try:
         response = client.chat.completions.create(
             messages=[{"role": "user", "content": prompt}],
@@ -150,7 +213,7 @@ def generate_business_report(location: str, business_category: str, available_ca
 
     recommended_schemes = [
         GovernmentScheme(
-            scheme_name=s.get("scheme_name", ""),
+            scheme_name=normalize_scheme_name(s.get("scheme_name", ""), language),
             subsidy_benefit=s.get("subsidy_benefit", ""),
             eligibility_fit=s.get("eligibility_fit", ""),
         )

@@ -99,6 +99,26 @@ const en: Dict = {
   privacy: "Privacy",
   contact: "Contact",
   language: "Language",
+
+  // Static scheme catalogue translations — keyed by Scheme.id from scheme_engine.py
+  scheme_pmfme_name: "PM Formalisation of Micro Food Processing Enterprises (PMFME)",
+  scheme_pmfme_desc:
+    "Credit-linked subsidy for micro food processing units — supports setup, branding, and common infrastructure for food-based enterprises.",
+  scheme_nlm_name: "National Livestock Mission (NLM)",
+  scheme_nlm_desc:
+    "Entrepreneurship support for livestock and dairy-based ventures, including capital subsidy for setting up dairy processing and value-addition units.",
+  scheme_mudra_name: "Pradhan Mantri Mudra Yojana (PMMY)",
+  scheme_mudra_desc:
+    "Collateral-free loans up to ₹10 lakh for non-farm micro and small enterprises — retail, trading, and small manufacturing units.",
+  scheme_pmegp_name: "Prime Minister's Employment Generation Programme (PMEGP)",
+  scheme_pmegp_desc:
+    "Margin-money subsidy for setting up new micro-enterprises, covering manufacturing and service-sector projects up to ₹50 lakh.",
+  scheme_handloom_name: "National Handloom Development Programme (NHDP)",
+  scheme_handloom_desc:
+    "Support for weavers and textile artisans — raw material subsidy, design development, and marketing assistance.",
+  scheme_standup_india_name: "Stand-Up India",
+  scheme_standup_india_desc:
+    "Bank loans between ₹10 lakh and ₹1 crore for setting up a greenfield enterprise — geared toward first-time entrepreneurs.",
 };
 
 const hi: Dict = {
@@ -190,6 +210,24 @@ const hi: Dict = {
   privacy: "गोपनीयता",
   contact: "संपर्क",
   language: "भाषा",
+
+  scheme_pmfme_name: "पीएम सूक्ष्म खाद्य प्रसंस्करण उद्यम औपचारीकरण योजना (पीएमएफएमई)",
+  scheme_pmfme_desc:
+    "सूक्ष्म खाद्य प्रसंस्करण इकाइयों के लिए ऋण-आधारित सब्सिडी — स्थापना, ब्रांडिंग और साझा बुनियादी ढाँचे में सहायता।",
+  scheme_nlm_name: "राष्ट्रीय पशुधन मिशन (एनएलएम)",
+  scheme_nlm_desc:
+    "पशुधन और डेयरी आधारित उद्यमों हेतु सहायता, जिसमें डेयरी प्रसंस्करण इकाई की स्थापना के लिए पूँजी सब्सिडी शामिल है।",
+  scheme_mudra_name: "प्रधानमंत्री मुद्रा योजना (पीएमएमवाई)",
+  scheme_mudra_desc:
+    "गैर-कृषि सूक्ष्म एवं लघु उद्यमों — खुदरा, व्यापार और छोटे विनिर्माण इकाइयों — हेतु ₹10 लाख तक का बिना जमानत ऋण।",
+  scheme_pmegp_name: "प्रधानमंत्री रोजगार सृजन कार्यक्रम (पीएमईजीपी)",
+  scheme_pmegp_desc:
+    "नए सूक्ष्म-उद्यमों की स्थापना हेतु मार्जिन-मनी सब्सिडी, ₹50 लाख तक की विनिर्माण एवं सेवा परियोजनाओं को कवर करती है।",
+  scheme_handloom_name: "राष्ट्रीय हथकरघा विकास कार्यक्रम (एनएचडीपी)",
+  scheme_handloom_desc: "बुनकरों और वस्त्र कारीगरों हेतु सहायता — कच्चा माल सब्सिडी, डिज़ाइन विकास और विपणन सहायता।",
+  scheme_standup_india_name: "स्टैंड-अप इंडिया",
+  scheme_standup_india_desc:
+    "नए उद्यम की स्थापना हेतु ₹10 लाख से ₹1 करोड़ तक का बैंक ऋण — पहली बार के उद्यमियों के लिए।",
 };
 
 const as: Dict = {
@@ -281,6 +319,24 @@ const as: Dict = {
   privacy: "গোপনীয়তা",
   contact: "যোগাযোগ",
   language: "ভাষা",
+
+  scheme_pmfme_name: "পিএম সূক্ষ্ম খাদ্য প্ৰক্ৰিয়াকৰণ উদ্যোগ আনুষ্ঠানিকীকৰণ আঁচনি (পিএমএফএমই)",
+  scheme_pmfme_desc:
+    "সূক্ষ্ম খাদ্য প্ৰক্ৰিয়াকৰণ ইউনিটৰ বাবে ঋণ-সংযুক্ত ভৰ্তুকি — স্থাপন, ব্ৰেণ্ডিং আৰু সাধাৰণ পৰিকাঠামোত সহায়।",
+  scheme_nlm_name: "ৰাষ্ট্ৰীয় পশুধন অভিযান (এনএলএম)",
+  scheme_nlm_desc:
+    "পশুধন আৰু গাখীৰ-আধাৰিত উদ্যোগৰ বাবে সহায়, ডেয়াৰী প্ৰক্ৰিয়াকৰণ ইউনিট স্থাপনৰ বাবে মূলধন ভৰ্তুকিসহ।",
+  scheme_mudra_name: "প্ৰধানমন্ত্ৰী মুদ্ৰা যোজনা (পিএমএমৱাই)",
+  scheme_mudra_desc:
+    "অ-কৃষি সূক্ষ্ম আৰু ক্ষুদ্ৰ উদ্যোগ — খুচুৰা, ব্যৱসায় আৰু সৰু উৎপাদন ইউনিট — ৰ বাবে ₹10 লাখলৈ বন্ধকমুক্ত ঋণ।",
+  scheme_pmegp_name: "প্ৰধানমন্ত্ৰী কৰ্মসংস্থান সৃষ্টি কাৰ্যসূচী (পিএমইজিপি)",
+  scheme_pmegp_desc:
+    "নতুন সূক্ষ্ম-উদ্যোগ স্থাপনৰ বাবে মাৰ্জিন-মানি ভৰ্তুকি, ₹50 লাখলৈ উৎপাদন আৰু সেৱা প্ৰকল্প কভাৰ কৰে।",
+  scheme_handloom_name: "ৰাষ্ট্ৰীয় হাতৰ শিল্প বিকাশ কাৰ্যসূচী (এনএইচডিপি)",
+  scheme_handloom_desc: "তাঁতী আৰু বস্ত্ৰ শিল্পীৰ বাবে সহায় — কেঁচামাল ভৰ্তুকি, ডিজাইন বিকাশ আৰু বিপণন সহায়।",
+  scheme_standup_india_name: "ষ্টেণ্ড-আপ ইণ্ডিয়া",
+  scheme_standup_india_desc:
+    "নতুন উদ্যোগ স্থাপনৰ বাবে ₹10 লাখৰ পৰা ₹1 কোটিলৈ বেংক ঋণ — প্ৰথমবাৰৰ উদ্যোগীৰ বাবে।",
 };
 
 const dicts: Record<Lang, Dict> = { English: en, Hindi: hi, Assamese: as };

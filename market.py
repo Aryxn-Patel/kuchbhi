@@ -35,6 +35,7 @@ class LiveCompetitorData:
     latitude: float
     longitude: float
     competitor_count: int
+    competitor_breakdown: str  # Frontend par dikhane ke liye nayi field
     radius_km: float
     sector_types_checked: list
 
@@ -85,7 +86,7 @@ def get_live_competitor_density(
     headers = {
         "Content-Type": "application/json",
         "X-Goog-Api-Key": GOOGLE_MAPS_API_KEY,
-        "X-Goog-FieldMask": "places.displayName",
+        "X-Goog-FieldMask": "places.displayName,places.primaryType", # Yahan FieldMask update kiya gaya hai
     }
     payload = {
         "includedTypes": target_types,
@@ -102,6 +103,17 @@ def get_live_competitor_density(
         res = requests.post(url, json=payload, headers=headers, timeout=10)
         res.raise_for_status()
         places = res.json().get("places", [])
+        
+        # Har category ka alag count nikalne ka logic
+        category_counts = {}
+        for place in places:
+            primary_type = place.get('primaryType', 'Other')
+            category_counts[primary_type] = category_counts.get(primary_type, 0) + 1
+            
+        # Format: "Grocery Store: 10, Convenience Store: 5"
+        breakdown_list = [f"{k.replace('_', ' ').title()}: {v}" for k, v in category_counts.items()]
+        breakdown_str = ", ".join(breakdown_list) if breakdown_list else "No active competitors found"
+
     except Exception as e:
         raise LiveMarketError(f"Places API call failed: {e}")
 
@@ -109,6 +121,7 @@ def get_live_competitor_density(
         latitude=lat,
         longitude=lng,
         competitor_count=len(places),
+        competitor_breakdown=breakdown_str, # Naya breakdown data include kiya gaya hai
         radius_km=radius_km,
         sector_types_checked=target_types,
     )

@@ -77,10 +77,13 @@ class MarketMetricsResponse(BaseModel):
     infrastructure_readiness_score: float
     economy_type_ratio: float
     live_competitor_count: Optional[int] = None
+    competitor_breakdown: Optional[str] = None
 
     @classmethod
-    def from_dataclass(cls, m: MarketMetrics, live_competitor_count: Optional[int] = None):
-        return cls(**m.__dict__, live_competitor_count=live_competitor_count)
+    def from_dataclass(cls, m: MarketMetrics, live_competitor_count: Optional[int] = None,
+                        competitor_breakdown: Optional[str] = None):
+        return cls(**m.__dict__, live_competitor_count=live_competitor_count,
+                    competitor_breakdown=competitor_breakdown)
 
 
 class SWOTResponse(BaseModel):
@@ -185,6 +188,7 @@ def generate_report(request: GenerateReportRequest):
 
     # Live competitor check via Google Places — best-effort, never blocks the request
     live_competitor_count: Optional[int] = None
+    competitor_breakdown: Optional[str] = None
     try:
         live_data = get_live_competitor_density(
             village_name=market_metrics.village_name,
@@ -193,6 +197,7 @@ def generate_report(request: GenerateReportRequest):
             business_type=translated.business_category,
         )
         live_competitor_count = live_data.competitor_count
+        competitor_breakdown = live_data.competitor_breakdown
     except LiveMarketError as e:
         print(f"LIVE COMPETITOR ERROR: {e}")
 
@@ -215,7 +220,8 @@ def generate_report(request: GenerateReportRequest):
     )
 
     market_metrics_response = MarketMetricsResponse.from_dataclass(
-        market_metrics, live_competitor_count=live_competitor_count
+        market_metrics, live_competitor_count=live_competitor_count,
+        competitor_breakdown=competitor_breakdown,
     )
 
     business_report_response = None

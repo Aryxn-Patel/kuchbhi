@@ -12,10 +12,6 @@
  *
  * The :root and .dark blocks define the actual color values using oklch.
  * All colors MUST use oklch format.
- *
- * To add a new semantic color:
- * 1. Add the variable to :root (light value) and .dark (dark value)
- * 2. Register it in @theme inline as --color-<name>: var(--<name>)
  */
 
 @theme inline {
@@ -62,92 +58,99 @@
 }
 
 :root {
-  --radius: 0.1875rem;
-  /* Udyam Disha institutional palette (dark shell theme, client-supplied swatch) */
-  --ud-navy: oklch(0.24 0.035 249); /* #122130 - headers, primary text on white cards */
-  --ud-govtblue: oklch(0.501 0.058 197); /* #376E6F - "Accent Teal", borders + primary CTA */
-  --ud-tan: oklch(0.75 0.07 60); /* #C79E75 - light beige accent, footer text, subtle tints */
-  --ud-green: oklch(0.693 0.12 4.5); /* #DA7B93 - "Accent Pink", success/selected states */
-  --ud-bg: oklch(0.376 0.038 241.8); /* #2F4454 - page shell background */
+  --radius: 0.375rem;
 
-  /* Back-compat aliases so existing ud-* utility classes keep working */
+  /* --- Udyam Disha Modern Light Palette --- */
+  /* #122130 - Deep Navy: headers, bold text, high-contrast clarity */
+  --ud-navy: oklch(0.235 0.042 245.2);
+
+  /* #349D9C - Accent Teal: primary interactive elements, badges, highlights */
+  --ud-govtblue: oklch(0.635 0.098 196.4);
+
+  /* #C79E75 - Warm Sand/Beige: subtle cards, accent borders, secondary chips */
+  --ud-tan: oklch(0.712 0.075 68.3);
+
+  /* #AEE378 - Fresh Agri Green: active states, success badges, primary CTA glow */
+  --ud-green: oklch(0.852 0.165 130.8);
+
+  /* #F8FAFC - Crisp Light Page Background: clean, airy, avoids muddy tones */
+  --ud-bg: oklch(0.985 0.005 240.0);
+
+  /* Back-compatibility aliases */
   --ud-brown: var(--ud-navy);
   --ud-ochre: var(--ud-govtblue);
-  --ud-gold: var(--ud-govtblue);
+  --ud-gold: var(--ud-tan);
   --ud-sand: var(--ud-tan);
   --ud-cream: var(--ud-bg);
 
-  --ud-maroon: oklch(0.234 0.041 5.4); /* #2E151B - deep accent, sparing use */
-  --ud-deepteal: oklch(0.303 0.029 199.3); /* #1C3334 - darkest surface, footer */
-
+  /* Core UI Semantic Mappings */
   --background: var(--ud-bg);
-  --foreground: oklch(0.96 0.008 240); /* light text for the dark page shell */
-  --card: oklch(1 0 0);
+  --foreground: var(--ud-navy);
+  --card: oklch(1 0 0); /* Pure White for cards to float cleanly */
   --card-foreground: var(--ud-navy);
   --popover: oklch(1 0 0);
   --popover-foreground: var(--ud-navy);
   --primary: var(--ud-govtblue);
-  --primary-foreground: oklch(0.985 0.02 90);
+  --primary-foreground: oklch(0.99 0 0);
   --secondary: var(--ud-tan);
   --secondary-foreground: var(--ud-navy);
-  --muted: oklch(0.93 0.015 240);
-  --muted-foreground: var(--ud-navy);
+  --muted: oklch(0.945 0.015 245.0); /* Soft light grey-blue */
+  --muted-foreground: oklch(0.45 0.03 245.0);
   --accent: var(--ud-green);
   --accent-foreground: var(--ud-navy);
-  --destructive: oklch(0.5 0.19 27);
-  --destructive-foreground: oklch(0.985 0.02 90);
-  --border: var(--ud-govtblue);
-  --input: oklch(1 0 0);
+  --destructive: oklch(0.55 0.22 25.0);
+  --destructive-foreground: oklch(0.99 0 0);
+  --border: oklch(0.86 0.02 230.0); /* Crisp clean border */
+  --input: oklch(1 0 0); /* Pure White inputs for contrast */
   --ring: var(--ud-govtblue);
   --chart-1: var(--ud-govtblue);
   --chart-2: var(--ud-green);
   --chart-3: var(--ud-navy);
   --chart-4: var(--ud-tan);
   --chart-5: var(--ud-bg);
-  --sidebar: var(--ud-tan);
+  --sidebar: oklch(1 0 0);
   --sidebar-foreground: var(--ud-navy);
   --sidebar-primary: var(--ud-govtblue);
   --sidebar-primary-foreground: oklch(1 0 0);
   --sidebar-accent: var(--ud-green);
   --sidebar-accent-foreground: var(--ud-navy);
-  --sidebar-border: var(--ud-govtblue);
+  --sidebar-border: oklch(0.88 0.02 230.0);
   --sidebar-ring: var(--ud-govtblue);
 }
 
-
 .dark {
-  --background: oklch(0.129 0.042 264.695);
-  --foreground: oklch(0.984 0.003 247.858);
-  --card: oklch(0.208 0.042 265.755);
-  --card-foreground: oklch(0.984 0.003 247.858);
-  --popover: oklch(0.208 0.042 265.755);
-  --popover-foreground: oklch(0.984 0.003 247.858);
-  --primary: oklch(0.929 0.013 255.508);
-  --primary-foreground: oklch(0.208 0.042 265.755);
-  --secondary: oklch(0.279 0.041 260.031);
-  --secondary-foreground: oklch(0.984 0.003 247.858);
-  --muted: oklch(0.279 0.041 260.031);
-  --muted-foreground: oklch(0.704 0.04 256.788);
-  --accent: oklch(0.279 0.041 260.031);
-  --accent-foreground: oklch(0.984 0.003 247.858);
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.984 0.003 247.858);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.551 0.027 264.364);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.208 0.042 265.755);
-  --sidebar-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.279 0.041 260.031);
-  --sidebar-accent-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.551 0.027 264.364);
+  --background: oklch(0.16 0.03 245.0);
+  --foreground: oklch(0.98 0.005 240.0);
+  --card: oklch(0.20 0.035 245.0);
+  --card-foreground: oklch(0.98 0.005 240.0);
+  --popover: oklch(0.20 0.035 245.0);
+  --popover-foreground: oklch(0.98 0.005 240.0);
+  --primary: oklch(0.68 0.11 196.4);
+  --primary-foreground: oklch(0.12 0.03 245.0);
+  --secondary: oklch(0.28 0.03 245.0);
+  --secondary-foreground: oklch(0.98 0.005 240.0);
+  --muted: oklch(0.25 0.025 245.0);
+  --muted-foreground: oklch(0.72 0.03 245.0);
+  --accent: oklch(0.85 0.165 130.8);
+  --accent-foreground: oklch(0.15 0.03 245.0);
+  --destructive: oklch(0.65 0.2 25.0);
+  --destructive-foreground: oklch(0.99 0 0);
+  --border: oklch(0.30 0.03 245.0);
+  --input: oklch(0.24 0.03 245.0);
+  --ring: oklch(0.68 0.11 196.4);
+  --chart-1: oklch(0.68 0.11 196.4);
+  --chart-2: oklch(0.85 0.165 130.8);
+  --chart-3: oklch(0.75 0.08 68.0);
+  --chart-4: oklch(0.48 0.05 245.0);
+  --chart-5: oklch(0.30 0.03 245.0);
+  --sidebar: oklch(0.18 0.03 245.0);
+  --sidebar-foreground: oklch(0.98 0.005 240.0);
+  --sidebar-primary: oklch(0.68 0.11 196.4);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.85 0.165 130.8);
+  --sidebar-accent-foreground: oklch(0.15 0.03 245.0);
+  --sidebar-border: oklch(0.30 0.03 245.0);
+  --sidebar-ring: oklch(0.68 0.11 196.4);
 }
 
 @theme inline {
@@ -158,14 +161,11 @@
   --color-ud-tan: var(--ud-tan);
   --color-ud-green: var(--ud-green);
   --color-ud-bg: var(--ud-bg);
-  /* back-compat names used across existing components */
   --color-ud-brown: var(--ud-brown);
   --color-ud-ochre: var(--ud-ochre);
   --color-ud-gold: var(--ud-gold);
   --color-ud-sand: var(--ud-sand);
   --color-ud-cream: var(--ud-cream);
-  --color-ud-maroon: var(--ud-maroon);
-  --color-ud-deepteal: var(--ud-deepteal);
 }
 
 @layer base {
@@ -174,13 +174,14 @@
   }
 
   html {
-    font-size: 17px;
+    font-size: 16px;
   }
 
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
   }
 }
 
@@ -189,8 +190,8 @@
     display: none !important;
   }
   body {
-    background: #fff;
-    color: #000;
+    background: #ffffff;
+    color: #000000;
     font-size: 12pt;
   }
   main {

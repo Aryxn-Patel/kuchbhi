@@ -4,8 +4,8 @@ import { Landmark, Pencil } from "lucide-react";
 
 import { SiteLayout } from "@/components/SiteLayout";
 import { useI18n } from "@/lib/i18n";
-import { loadReport, formatNum, formatINR, type StoredReport } from "@/lib/report-store";
-import type { SWOT } from "@/lib/api";
+import { loadReport, saveReport, formatNum, formatINR, type StoredReport } from "@/lib/report-store";
+import { generateReport, type SWOT } from "@/lib/api";
 
 export const Route = createFileRoute("/report")({
   head: () => ({
@@ -86,14 +86,49 @@ function Stat({
 }
 
 function ReportPage() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const [data, setData] = useState<StoredReport | null>(null);
   const [ready, setReady] = useState(false);
+  const [regenerating, setRegenerating] = useState(false);
 
+  // Initial load from whatever was cached when the form was submitted.
   useEffect(() => {
     setData(loadReport());
     setReady(true);
   }, []);
+
+  // The AI-generated content (SWOT, pricing text) is written in whichever
+  // language was selected at submit time and does not translate itself —
+  // only the static UI labels do. So if the user switches languages after
+  // arriving here, re-fetch the report in the new language and refresh the cache.
+  useEffect(() => {
+    if (!ready || !data) return;
+    if (data.request.language === lang) return;
+
+    let cancelled = false;
+    setRegenerating(true);
+
+    const updatedRequest = { ...data.request, language: lang };
+    generateReport(updatedRequest)
+      .then((response) => {
+        if (cancelled) return;
+        const updated: StoredReport = { request: updatedRequest, response };
+        saveReport(updated);
+        setData(updated);
+      })
+      .catch((err) => {
+        // Keep showing the previous-language report rather than losing it.
+        console.error("Failed to regenerate report in new language", err);
+      })
+      .finally(() => {
+        if (!cancelled) setRegenerating(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lang, ready]);
 
   if (!ready) return <SiteLayout>{null}</SiteLayout>;
 
@@ -149,6 +184,9 @@ function ReportPage() {
         <p className="mt-1 text-base text-ud-navy capitalize">
           {response.location} · {response.business_category}
         </p>
+        {regenerating && (
+          <p className="mt-2 text-sm font-semibold text-ud-govtblue">{t("regeneratingReport")}</p>
+        )}
       </div>
 
       <section className="mt-6">

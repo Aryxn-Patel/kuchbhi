@@ -40,6 +40,28 @@ class LiveCompetitorData:
     sector_types_checked: list
 
 
+def _resolve_sector_types(business_type: str) -> list:
+    """
+    Resolve a business_type string to Google Places types.
+
+    Tries an exact match first. If that fails (e.g. an LLM-translated
+    category like "Dairy Products" instead of the canonical "Dairy"),
+    falls back to a substring match against known keys before giving up
+    and using the generic DEFAULT_TYPES — which pulls in unrelated results
+    (e.g. electronics stores showing up under "Dairy").
+    """
+    normalized = business_type.lower().strip()
+
+    if normalized in SECTOR_MAPPING:
+        return SECTOR_MAPPING[normalized]
+
+    for key, types in SECTOR_MAPPING.items():
+        if key in normalized or normalized in key:
+            return types
+
+    return DEFAULT_TYPES
+
+
 def _geocode(village_name: str, district_name: str, state_name: str) -> tuple:
     if not GOOGLE_MAPS_API_KEY:
         raise LiveMarketError("GOOGLE_MAPS_API_KEY is not configured.")
@@ -79,14 +101,13 @@ def get_live_competitor_density(
     """
     lat, lng = _geocode(village_name, district_name, state_name)
 
-    normalized = business_type.lower().strip()
-    target_types = SECTOR_MAPPING.get(normalized, DEFAULT_TYPES)
+    target_types = _resolve_sector_types(business_type)
 
     url = "https://places.googleapis.com/v1/places:searchNearby"
     headers = {
         "Content-Type": "application/json",
         "X-Goog-Api-Key": GOOGLE_MAPS_API_KEY,
-        "X-Goog-FieldMask": "places.displayName,places.primaryType", # Yahan FieldMask update kiya gaya hai
+        "X-Goog-FieldMask": "places.displayName,places.primaryType",
     }
     payload = {
         "includedTypes": target_types,
@@ -103,13 +124,13 @@ def get_live_competitor_density(
         res = requests.post(url, json=payload, headers=headers, timeout=10)
         res.raise_for_status()
         places = res.json().get("places", [])
-        
+
         # Har category ka alag count nikalne ka logic
         category_counts = {}
         for place in places:
             primary_type = place.get('primaryType', 'Other')
             category_counts[primary_type] = category_counts.get(primary_type, 0) + 1
-            
+
         # Format: "Grocery Store: 10, Convenience Store: 5"
         breakdown_list = [f"{k.replace('_', ' ').title()}: {v}" for k, v in category_counts.items()]
         breakdown_str = ", ".join(breakdown_list) if breakdown_list else "No active competitors found"
@@ -121,7 +142,7 @@ def get_live_competitor_density(
         latitude=lat,
         longitude=lng,
         competitor_count=len(places),
-        competitor_breakdown=breakdown_str, # Naya breakdown data include kiya gaya hai
+        competitor_breakdown=breakdown_str,
         radius_km=radius_km,
         sector_types_checked=target_types,
     )

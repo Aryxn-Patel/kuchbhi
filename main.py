@@ -194,7 +194,13 @@ def generate_report(request: GenerateReportRequest):
             village_name=market_metrics.village_name,
             district_name=market_metrics.district_name,
             state_name=market_metrics.state_name,
-            business_type=translated.business_category,
+            # Use the original canonical category (from the frontend dropdown:
+            # "Dairy", "Retail", etc.) rather than translated.business_category.
+            # The LLM translation step can return phrasing like "Dairy Products"
+            # or "Milk Products" that doesn't exactly match SECTOR_MAPPING's keys,
+            # silently falling back to the generic "store" type — which is how
+            # unrelated results like electronics stores were showing up for Dairy.
+            business_type=request.business_category,
         )
         live_competitor_count = live_data.competitor_count
         competitor_breakdown = live_data.competitor_breakdown
